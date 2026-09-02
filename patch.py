@@ -157,21 +157,21 @@ if oc and "coexyApiKey" not in oc:
     # 3.1 Add state
     sm = 'const [loadingMetaRequireBusinessManagement, setLoadingMetaRequireBusinessManagement] = useState(false);'
     if sm in oc:
-        oc = oc.replace(sm, sm + '\n\n  // Coexy\n  const [coexyApiKey, setCoexyApiKey] = useState("");\n  const [loadingCoexyApiKey, setLoadingCoexyApiKey] = useState(false);\n  const [coexyHmacSecret, setCoexyHmacSecret] = useState("");\n  const [loadingCoexyHmacSecret, setLoadingCoexyHmacSecret] = useState(false);')
+        oc = oc.replace(sm, sm + '\n\n  // Coexy\n  const [coexyApiKey, setCoexyApiKey] = useState("");\n  const [loadingCoexyApiKey, setLoadingCoexyApiKey] = useState(false);\n  const [coexyHmacSecret, setCoexyHmacSecret] = useState("");\n  const [loadingCoexyHmacSecret, setLoadingCoexyHmacSecret] = useState(false);\n  const [coexyWebhookDomain, setCoexyWebhookDomain] = useState("");\n  const [loadingCoexyWebhookDomain, setLoadingCoexyWebhookDomain] = useState(false);')
         print("[OK]   Options.js - state added")
         opts_changed = True
 
     # 3.2 Add oldSettings parsing
     pm = re.search(r'(if \(aiSuggestionMessagesLimitPar\) \{[^}]+\})', oc)
     if pm:
-        oc = oc[:pm.end()] + '\n\n      // Coexy\n      const coexyApiKeyPar = oldSettings.find(s => s.key === "coexyApiKey");\n      if (coexyApiKeyPar) setCoexyApiKey(coexyApiKeyPar.value);\n      const coexyHmacSecretPar = oldSettings.find(s => s.key === "coexyHmacSecret");\n      if (coexyHmacSecretPar) setCoexyHmacSecret(coexyHmacSecretPar.value);' + oc[pm.end():]
+        oc = oc[:pm.end()] + '\n\n      // Coexy\n      const coexyApiKeyPar = oldSettings.find(s => s.key === "coexyApiKey");\n      if (coexyApiKeyPar) setCoexyApiKey(coexyApiKeyPar.value);\n      const coexyHmacSecretPar = oldSettings.find(s => s.key === "coexyHmacSecret");\n      if (coexyHmacSecretPar) setCoexyHmacSecret(coexyHmacSecretPar.value);\n      const coexyWebhookDomainPar = oldSettings.find(s => s.key === "coexyWebhookDomain");\n      if (coexyWebhookDomainPar) setCoexyWebhookDomain(coexyWebhookDomainPar.value);' + oc[pm.end():]
         print("[OK]   Options.js - oldSettings parsing added")
         opts_changed = True
 
     # 3.3 Add handlers
     hm = re.search(r'(async function handleAiApiKey\(value\) \{[\s\S]*?setLoadingAiApiKey\(false\);\s*\})', oc)
     if hm:
-        oc = oc[:hm.end()] + '\n\n  async function handleCoexyApiKey(value) {\n    setCoexyApiKey(value);\n    setLoadingCoexyApiKey(true);\n    await updateUserCreation({ key: "coexyApiKey", value });\n    toast.success("Coexy API Key atualizada.");\n    setLoadingCoexyApiKey(false);\n  }\n\n  async function handleCoexyHmacSecret(value) {\n    setCoexyHmacSecret(value);\n    setLoadingCoexyHmacSecret(true);\n    await updateUserCreation({ key: "coexyHmacSecret", value });\n    toast.success("Coexy HMAC Secret atualizado.");\n    setLoadingCoexyHmacSecret(false);\n  }' + oc[hm.end():]
+        oc = oc[:hm.end()] + '\n\n  async function handleCoexyApiKey(value) {\n    setCoexyApiKey(value);\n    setLoadingCoexyApiKey(true);\n    await updateUserCreation({ key: "coexyApiKey", value });\n    toast.success("Coexy API Key atualizada.");\n    setLoadingCoexyApiKey(false);\n  }\n\n  async function handleCoexyHmacSecret(value) {\n    setCoexyHmacSecret(value);\n    setLoadingCoexyHmacSecret(true);\n    await updateUserCreation({ key: "coexyHmacSecret", value });\n    toast.success("Coexy HMAC Secret atualizado.");\n    setLoadingCoexyHmacSecret(false);\n  }\n\n  async function handleCoexyWebhookDomain(value) {\n    setCoexyWebhookDomain(value);\n    setLoadingCoexyWebhookDomain(true);\n    await updateUserCreation({ key: "coexyWebhookDomain", value });\n    toast.success("Dominio do webhook atualizado.");\n    setLoadingCoexyWebhookDomain(false);\n  }' + oc[hm.end():]
         print("[OK]   Options.js - handlers added")
         opts_changed = True
 
@@ -244,6 +244,51 @@ if oc and "coexyApiKey" not in oc:
               />
               <FormHelperText>
                 {loadingCoexyHmacSecret ? "Atualizando..." : "Retornado uma vez ao criar o webhook - salve imediatamente"}
+              </FormHelperText>
+            </FormControl>
+          </Grid>
+
+          <Grid xs={12} md={6} item>
+            <FormControl className={classes.selectContainer}>
+              <TextField
+                id="coexyWebhookDomain"
+                name="coexyWebhookDomain"
+                margin="dense"
+                label="Domínio da API Oficial"
+                variant="outlined"
+                value={coexyWebhookDomain}
+                onChange={(e) => setCoexyWebhookDomain(e.target.value)}
+                onBlur={() => handleCoexyWebhookDomain(coexyWebhookDomain)}
+                InputLabelProps={{ shrink: true }}
+                placeholder="https://ofc.seudominio.com.br"
+              />
+              <FormHelperText>
+                {loadingCoexyWebhookDomain ? "Atualizando..." : "Domínio onde o api_oficial está hospedado"}
+              </FormHelperText>
+            </FormControl>
+          </Grid>
+
+          <Grid xs={12} md={6} item>
+            <FormControl className={classes.selectContainer}>
+              <TextField
+                id="coexyWebhookUrl"
+                name="coexyWebhookUrl"
+                margin="dense"
+                label="URL do Webhook (copie e cole na Coexy)"
+                variant="outlined"
+                value={coexyWebhookDomain ? coexyWebhookDomain.replace(/\\/+$/, "") + "/v1/webhook-coexy" : "Preencha o domínio ao lado"}
+                InputProps={{ readOnly: true }}
+                InputLabelProps={{ shrink: true }}
+                onClick={(e) => {
+                  if (coexyWebhookDomain) {
+                    navigator.clipboard.writeText(coexyWebhookDomain.replace(/\\/+$/, "") + "/v1/webhook-coexy");
+                    toast.info("URL do webhook copiada!");
+                  }
+                }}
+                style={{ cursor: coexyWebhookDomain ? "pointer" : "default" }}
+              />
+              <FormHelperText>
+                Clique para copiar. Cole esta URL ao criar o webhook na Coexy.
               </FormHelperText>
             </FormControl>
           </Grid>

@@ -366,7 +366,8 @@ if [ -f "${PROJECT_DIR}/backend/package.json" ]; then
       PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -c "
         INSERT INTO \"Settings\" (key, value, \"companyId\", \"createdAt\", \"updatedAt\")
         VALUES ('coexyApiKey', '', 1, NOW(), NOW()),
-               ('coexyHmacSecret', '', 1, NOW(), NOW())
+               ('coexyHmacSecret', '', 1, NOW(), NOW()),
+               ('coexyWebhookDomain', '', 1, NOW(), NOW())
         ON CONFLICT DO NOTHING;
       " 2>&1 && ok "Settings Coexy inseridas" || warn "Seed Settings falhou - insira manualmente"
     else
