@@ -363,6 +363,15 @@ patch_file "$CONN_FILE" \
       return <WhatsApp style={{ color: \"#25d366\" }} />;' '${CONN_FILE}'" \
   "Connections/index.js - IconChannel case"
 
+# ---- 2.10 Connections/index.js: useState, modals, button (via Python) ----
+if ! grep -q "coexyModalOpen" "$CONN_FILE" 2>/dev/null; then
+  python3 "${SCRIPT_DIR}/fix-connections.py" "$CONN_FILE" && \
+    ok "Connections/index.js - useState, modais e botao Coexy" || \
+    warn "Connections/index.js - patch Python falhou, execute manualmente: python3 fix-connections.py"
+else
+  ok "Connections/index.js - useState, modais e botao - ja aplicado, pulando"
+fi
+
 echo ""
 info "Patches concluidos."
 
