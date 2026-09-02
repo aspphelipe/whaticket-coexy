@@ -4,13 +4,13 @@ f=open(p,"r");c=f.read();f.close()
 
 changed = False
 
-# 1. Add useState
+# 1. Add useState (if not present)
 if "coexyModalOpen" not in c:
     c=c.replace("const [instagramProcessing, setInstagramProcessing] = useState(false);","const [instagramProcessing, setInstagramProcessing] = useState(false);\n  const [coexyModalOpen, setCoexyModalOpen] = useState(false);\n  const [coexyStatusOpen, setCoexyStatusOpen] = useState(false);\n  const [coexyWhatsappId, setCoexyWhatsappId] = useState(null);",1)
     print("useState inserted")
     changed = True
 
-# 2. Add modals after WhatsAppModal
+# 2. Add modals after WhatsAppModal (if not present)
 if "<CoexyModal" not in c:
     m=re.search(r"(<WhatsAppModal[\s\S]*?/>)",c)
     if m:
@@ -18,13 +18,41 @@ if "<CoexyModal" not in c:
         print("Modals inserted")
         changed = True
 
-# 3. Add Coexy button
-if "setCoexyModalOpen(true)" not in c:
-    m2=re.search(r"(</MainHeaderButtonsWrapper>)",c)
-    if m2:
-        c=c[:m2.start()]+'\n              <Button\n                variant="contained"\n                style={{\n                  background: "linear-gradient(135deg, #6c5ce7, #a855f7)",\n                  color: "#fff",\n                  textTransform: "none",\n                  fontWeight: 600,\n                  borderRadius: 10,\n                  marginLeft: 8,\n                }}\n                onClick={() => setCoexyModalOpen(true)}\n              >\n                + Coexy\n              </Button>\n            '+c[m2.start():]
-        print("Button inserted")
+# 3. Remove standalone Coexy button (if exists from previous fix)
+standalone_btn = re.search(r'\n\s*<Button\s*\n\s*variant="contained"\s*\n\s*style=\{\{\s*\n\s*background: "linear-gradient\(135deg, #6c5ce7, #a855f7\)"[\s\S]*?\+ Coexy\s*\n\s*</Button>', c)
+if standalone_btn:
+    c = c[:standalone_btn.start()] + c[standalone_btn.end():]
+    print("Standalone button removed")
+    changed = True
+
+# 4. Add Coexy as MenuItem inside PopupState menu (after Instagram MenuItem)
+if "setCoexyModalOpen" not in c or standalone_btn:
+    # Find the Instagram MenuItem closing tag pattern and insert after it
+    instagram_pattern = re.search(r'(: "Instagram"\}\s*</MenuItem>)', c)
+    if instagram_pattern:
+        coexy_menuitem = '''
+
+                            <MenuItem
+                              onClick={() => {
+                                setCoexyModalOpen(true);
+                                popupState.close();
+                              }}
+                            >
+                              <WhatsApp
+                                fontSize="small"
+                                style={{
+                                  marginRight: "10px",
+                                  color: "#25D366",
+                                }}
+                              />
+                              Coexy - API Oficial
+                            </MenuItem>'''
+        insert_pos = instagram_pattern.end()
+        c = c[:insert_pos] + coexy_menuitem + c[insert_pos:]
+        print("Coexy MenuItem inserted in menu")
         changed = True
+    else:
+        print("Could not find Instagram MenuItem to insert after")
 
 if changed:
     f=open(p,"w");f.write(c);f.close()
