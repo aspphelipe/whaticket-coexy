@@ -34,6 +34,44 @@ elif wc:
     print("[OK]   WhatsAppController.ts - imports already present")
 
 # ============================================================
+# 1b. WhatsAppController.ts - add StartCoexySession block in store
+# ============================================================
+wc = patch_file(wc_path, "WhatsAppController.ts (store block)")
+if wc and "StartCoexySession" in wc and 'whatsapp.channel === "whatsapp_coexy"' not in wc:
+    # Find the pattern: if (["whatsapp"].includes(whatsapp.channel)) { StartWhatsAppSession
+    marker = '["whatsapp"].includes(whatsapp.channel)'
+    idx = wc.find(marker)
+    if idx >= 0:
+        # Find the start of the if statement (back up to 'if (')
+        line_start = wc.rfind('\n', 0, idx)
+        if line_start < 0:
+            line_start = 0
+        else:
+            line_start += 1  # skip the newline itself
+
+        coexy_block = '''  if (whatsapp.channel === "whatsapp_coexy") {
+    try {
+      await StartCoexySession({
+        whatsappId: whatsapp.id,
+        companyId: whatsapp.companyId
+      });
+      await whatsapp.reload();
+    } catch (err) {
+      console.log("store: Coexy session error:", err.message);
+    }
+  }
+
+'''
+        wc = wc[:line_start] + coexy_block + wc[line_start:]
+        save_file(wc_path, wc, "WhatsAppController.ts - StartCoexySession block in store")
+    else:
+        print("[WARN] WhatsAppController.ts - could not find whatsapp channel check in store")
+elif wc and 'whatsapp.channel === "whatsapp_coexy"' in wc:
+    print("[OK]   WhatsAppController.ts - StartCoexySession block already present")
+else:
+    print("[WARN] WhatsAppController.ts - StartCoexySession import missing, skipping store block")
+
+# ============================================================
 # 2. Connections/index.js - imports, useState, MenuItem, modals
 # ============================================================
 conn_path = os.path.join(PROJECT_DIR, "frontend/src/pages/Connections/index.js")

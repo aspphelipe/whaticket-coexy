@@ -275,8 +275,6 @@ else
   ok "WhatsAppController - coexyStatus ja existe, pulando"
 fi
 
-warn "WhatsAppController.store: revise manualmente o bloco de inicializacao da sessao Coexy"
-
 # ---- 2.6  whatsappRoutes.ts: adicionar rota coexy-status ----
 patch_file \
   "${PROJECT_DIR}/backend/src/routes/whatsappRoutes.ts" \
@@ -422,10 +420,12 @@ fi
 echo ""
 info "Reiniciando servicos via PM2 ..."
 
-if command -v pm2 &>/dev/null; then
+if command -v su &>/dev/null; then
+  su - deploy -c "pm2 restart all" 2>&1 && ok "PM2 reiniciado" || warn "PM2 restart falhou"
+elif command -v pm2 &>/dev/null; then
   pm2 restart all 2>&1 && ok "PM2 reiniciado" || warn "PM2 restart falhou"
 else
-  warn "PM2 nao encontrado no PATH - reinicie manualmente"
+  warn "PM2 nao encontrado no PATH - reinicie manualmente: su - deploy -c 'pm2 restart all'"
 fi
 
 # ============================================================
@@ -441,7 +441,7 @@ echo -e "  1. Acesse o painel > ${CYAN}Configuracoes${NC}"
 echo -e "     Preencha os campos ${CYAN}Coexy API Key${NC} e ${CYAN}Coexy HMAC Secret${NC}"
 echo ""
 echo -e "  2. Reinicie os servicos:"
-echo -e "     ${CYAN}pm2 restart all${NC}"
+echo -e "     ${CYAN}su - deploy -c 'pm2 restart all'${NC}"
 echo ""
 echo -e "  3. Acesse ${CYAN}Conexoes${NC} > ${CYAN}Nova Conexao${NC} > ${CYAN}Coexy - API Oficial${NC}"
 echo ""
