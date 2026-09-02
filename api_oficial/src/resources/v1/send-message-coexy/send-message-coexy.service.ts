@@ -55,7 +55,7 @@ export class SendMessageCoexyService {
       );
 
       return { meta_response: res.data };
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(
         `sendCoexyMessage error: ${error.response?.data ? JSON.stringify(error.response.data) : error.message}`,
       );

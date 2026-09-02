@@ -90,25 +90,19 @@ export class WebhookCoexyService {
             };
 
             if (connection.use_rabbitmq) {
-              await this.rabbit.publishInQueue(
+              await this.rabbit.publish(
                 `wpp_oficial_${company.idEmpresaMult100}`,
                 JSON.stringify(payload),
               );
             }
 
-            this.socket.emit(
-              `company-${company.idEmpresaMult100}-whatsapp`,
-              {
-                action: 'webhook_coexy',
-                data: payload,
-              },
-            );
+            this.socket.sendMessage(payload as any);
           }
         }
       }
 
       return true;
-    } catch (error) {
+    } catch (error: any) {
       this.logger.error(`processWebhook error: ${error.message}`, error.stack);
       return false;
     }
