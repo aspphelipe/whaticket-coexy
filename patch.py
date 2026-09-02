@@ -175,13 +175,85 @@ if oc and "coexyApiKey" not in oc:
         print("[OK]   Options.js - handlers added")
         opts_changed = True
 
-    # 3.4 Add JSX
-    jm = re.search(r'(loadingAiApiKey\s*\?[\s\S]*?</FormHelperText>\s*</FormControl>\s*</Grid>)', oc)
-    if jm:
-        coexy_jsx = '\n\n          {/* Coexy - WhatsApp API */}\n          <Grid xs={12} item>\n            <Typography variant="subtitle1" style={{ fontWeight: 600, marginTop: 24, marginBottom: 8 }}>\n              Coexy - WhatsApp API\n            </Typography>\n          </Grid>\n\n          <Grid xs={12} md={6} item>\n            <FormControl className={classes.selectContainer}>\n              <TextField\n                id="coexyApiKey"\n                name="coexyApiKey"\n                type="password"\n                margin="dense"\n                label="Coexy API Key"\n                variant="outlined"\n                value={coexyApiKey}\n                onChange={(e) => setCoexyApiKey(e.target.value)}\n                onBlur={() => handleCoexyApiKey(coexyApiKey)}\n                InputLabelProps={{ shrink: true }}\n                placeholder="crt_pk_..."\n              />\n              <FormHelperText>\n                {loadingCoexyApiKey ? "Atualizando..." : "Coexy Dashboard > Configuracoes > API Keys"}\n              </FormHelperText>\n            </FormControl>\n          </Grid>\n\n          <Grid xs={12} md={6} item>\n            <FormControl className={classes.selectContainer}>\n              <TextField\n                id="coexyHmacSecret"\n                name="coexyHmacSecret"\n                type="password"\n                margin="dense"\n                label="Coexy HMAC Secret"\n                variant="outlined"\n                value={coexyHmacSecret}\n                onChange={(e) => setCoexyHmacSecret(e.target.value)}\n                onBlur={() => handleCoexyHmacSecret(coexyHmacSecret)}\n                InputLabelProps={{ shrink: true }}\n                placeholder="Retornado ao criar webhook"\n              />\n              <FormHelperText>\n                {loadingCoexyHmacSecret ? "Atualizando..." : "Retornado uma vez ao criar o webhook"}\n              </FormHelperText>\n            </FormControl>\n          </Grid>'
-        oc = oc[:jm.end()] + coexy_jsx + oc[jm.end():]
-        print("[OK]   Options.js - JSX added")
+    # 3.4 Add JSX - as a separate section after Meta, before Configuracoes Gerais
+    # Uses the same sectionStyle/sectionHeaderStyle pattern as Meta section
+    meta_section_end = re.search(r'(Exigir permiss.o business_management[\s\S]*?</Grid>\s*</Grid>\s*</div>\s*\) : null\})', oc)
+    if meta_section_end:
+        coexy_section = '''
+
+      {/* ── Seção: Integração API Oficial WhatsApp - Coexy ── */}
+      <div style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <div style={{ width: 4, height: 20, background: "#6c5ce7", borderRadius: 2 }} />
+          <span style={sectionTitleStyle}>Integração API Oficial WhatsApp - Coexy</span>
+        </div>
+        <div
+          style={{
+            marginBottom: 18,
+            padding: "14px 16px",
+            borderRadius: 12,
+            background:
+              "linear-gradient(135deg, rgba(108,92,231,0.06) 0%, rgba(168,85,247,0.06) 100%)",
+            border: "1px solid rgba(108,92,231,0.10)",
+          }}
+        >
+          <div style={{ fontSize: 14, fontWeight: 700, color: theme.palette.text.primary, marginBottom: 4 }}>
+            Configure a conexão com a Coexy direto no sistema
+          </div>
+          <div style={{ fontSize: 12, color: theme.palette.text.secondary, lineHeight: 1.6 }}>
+            Preencha a API Key e o HMAC Secret da sua conta Coexy. Após configurar, acesse
+            Conexões &gt; Nova Conexão &gt; <strong>Coexy - API Oficial</strong> para conectar um número.
+          </div>
+        </div>
+        <Grid spacing={2} container>
+          <Grid xs={12} md={6} item>
+            <FormControl className={classes.selectContainer}>
+              <TextField
+                id="coexyApiKey"
+                name="coexyApiKey"
+                type="password"
+                margin="dense"
+                label="Coexy API Key"
+                variant="outlined"
+                value={coexyApiKey}
+                onChange={(e) => setCoexyApiKey(e.target.value)}
+                onBlur={() => handleCoexyApiKey(coexyApiKey)}
+                InputLabelProps={{ shrink: true }}
+                placeholder="crt_pk_..."
+              />
+              <FormHelperText>
+                {loadingCoexyApiKey ? "Atualizando..." : "Encontrada em Coexy Dashboard > Configurações > API Keys"}
+              </FormHelperText>
+            </FormControl>
+          </Grid>
+
+          <Grid xs={12} md={6} item>
+            <FormControl className={classes.selectContainer}>
+              <TextField
+                id="coexyHmacSecret"
+                name="coexyHmacSecret"
+                type="password"
+                margin="dense"
+                label="Coexy HMAC Secret"
+                variant="outlined"
+                value={coexyHmacSecret}
+                onChange={(e) => setCoexyHmacSecret(e.target.value)}
+                onBlur={() => handleCoexyHmacSecret(coexyHmacSecret)}
+                InputLabelProps={{ shrink: true }}
+                placeholder="Retornado ao criar webhook na Coexy"
+              />
+              <FormHelperText>
+                {loadingCoexyHmacSecret ? "Atualizando..." : "Retornado uma vez ao criar o webhook - salve imediatamente"}
+              </FormHelperText>
+            </FormControl>
+          </Grid>
+        </Grid>
+      </div>'''
+        oc = oc[:meta_section_end.end()] + coexy_section + oc[meta_section_end.end():]
+        print("[OK]   Options.js - Coexy section added after Meta section")
         opts_changed = True
+    else:
+        print("[WARN] Options.js - Meta section end not found for JSX insertion")
 
     if opts_changed:
         save_file(opts_path, oc, "Options.js - all patches applied")
