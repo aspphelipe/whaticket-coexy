@@ -72,6 +72,21 @@ else:
     print("[WARN] WhatsAppController.ts - StartCoexySession import missing, skipping store block")
 
 # ============================================================
+# 1c. WhatsAppController.ts - fix coexyStatus to set CONNECTED
+# ============================================================
+wc = patch_file(wc_path, "WhatsAppController.ts (coexyStatus fix)")
+if wc and 'coexyStatus' in wc and 'updates.status = "CONNECTED"' not in wc:
+    old_updates = '    const updates: any = {\n      coexy_status: channel.status\n    };\n\n    if (channel.phone_number_id && !whatsapp.number) {\n      updates.number = channel.display_phone_number?.replace(/\\D/g, "");\n    }'
+    new_updates = '    const updates: any = {\n      coexy_status: channel.status\n    };\n\n    if (channel.status === "active") {\n      updates.status = "CONNECTED";\n      updates.phone_number_id = channel.phone_number_id;\n      updates.number = channel.display_phone_number?.replace(/\\D/g, "");\n    }'
+    if old_updates in wc:
+        wc = wc.replace(old_updates, new_updates, 1)
+        save_file(wc_path, wc, "WhatsAppController.ts - coexyStatus CONNECTED fix")
+    else:
+        print("[WARN] WhatsAppController.ts - coexyStatus pattern not found for fix")
+elif wc and 'updates.status = "CONNECTED"' in wc:
+    print("[OK]   WhatsAppController.ts - coexyStatus CONNECTED fix already present")
+
+# ============================================================
 # 2. Connections/index.js - imports, useState, MenuItem, modals
 # ============================================================
 conn_path = os.path.join(PROJECT_DIR, "frontend/src/pages/Connections/index.js")
