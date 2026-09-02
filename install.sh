@@ -330,47 +330,11 @@ model coexyConnection {
 PRISMA_EOF" \
   "schema.prisma - model coexyConnection"
 
-# ---- 2.9  Connections/index.js: adicionar imports, IconChannel case, badge style ----
-CONN_FILE="${PROJECT_DIR}/frontend/src/pages/Connections/index.js"
-
-# Import CoexyModal e CoexyStatusModal
-patch_file "$CONN_FILE" \
-  "CoexyModal" \
-  "sed -i '/import.*QrcodeModal/a\\
-import CoexyModal from \"../../components/CoexyModal\";\\
-import CoexyStatusModal from \"../../components/CoexyStatusModal\";' '${CONN_FILE}'" \
-  "Connections/index.js - imports Coexy"
-
-# Badge style coexyBadge
-patch_file "$CONN_FILE" \
-  "coexyBadge" \
-  "sed -i '/marginTop: 1,/a\\
-  },\\
-  coexyBadge: {\\
-    background: \"linear-gradient(135deg, #6c5ce7, #a855f7)\",\\
-    color: \"#fff\",\\
-    fontWeight: 700,\\
-    fontSize: \"0.7rem\",\\
-    borderRadius: 6,\\
-    padding: \"2px 8px\",' '${CONN_FILE}'" \
-  "Connections/index.js - coexyBadge style"
-
-# IconChannel case whatsapp_coexy
-patch_file "$CONN_FILE" \
-  'case "whatsapp_coexy"' \
-  "sed -i '/case \"whatsapp_oficial\":/a\\
-    case \"whatsapp_coexy\":\\
-      return <WhatsApp style={{ color: \"#25d366\" }} />;' '${CONN_FILE}'" \
-  "Connections/index.js - IconChannel case"
-
-# ---- 2.10 Connections/index.js: useState, modals, button (via Python) ----
-if ! grep -q "coexyModalOpen" "$CONN_FILE" 2>/dev/null; then
-  python3 "${SCRIPT_DIR}/fix-connections.py" "$CONN_FILE" && \
-    ok "Connections/index.js - useState, modais e botao Coexy" || \
-    warn "Connections/index.js - patch Python falhou, execute manualmente: python3 fix-connections.py"
-else
-  ok "Connections/index.js - useState, modais e botao - ja aplicado, pulando"
-fi
+# ---- 2.9  Frontend patches (Connections + Options) via Python ----
+info "Aplicando patches frontend (Connections + Options) via patch.py ..."
+python3 "${SCRIPT_DIR}/patch.py" "${PROJECT_DIR}" && \
+  ok "Frontend patches aplicados" || \
+  warn "Frontend patches falharam - execute manualmente: python3 patch.py ${PROJECT_DIR}"
 
 echo ""
 info "Patches concluidos."
@@ -427,11 +391,24 @@ if [ -f "${PROJECT_DIR}/api_oficial/prisma/schema.prisma" ]; then
 fi
 
 # ============================================================
-#  FASE 4 - Rebuild Frontend
+#  FASE 4 - Build Backend + API Oficial + Frontend
 # ============================================================
 echo ""
-info "Reconstruindo frontend ..."
+info "Compilando backend (TypeScript) ..."
+if [ -f "${PROJECT_DIR}/backend/package.json" ]; then
+  (cd "${PROJECT_DIR}/backend" && npx tsc 2>&1) && \
+    ok "Backend compilado" || \
+    warn "Build do backend falhou - execute manualmente: cd ${PROJECT_DIR}/backend && npx tsc"
+fi
 
+info "Compilando api_oficial (NestJS) ..."
+if [ -f "${PROJECT_DIR}/api_oficial/package.json" ]; then
+  (cd "${PROJECT_DIR}/api_oficial" && npm run build 2>&1) && \
+    ok "API Oficial compilada" || \
+    warn "Build do api_oficial falhou - execute manualmente: cd ${PROJECT_DIR}/api_oficial && npm run build"
+fi
+
+info "Reconstruindo frontend ..."
 if [ -f "${PROJECT_DIR}/frontend/package.json" ]; then
   (cd "${PROJECT_DIR}/frontend" && npm install --legacy-peer-deps 2>&1 && npm run build 2>&1) && \
     ok "Frontend reconstruido" || \
@@ -459,15 +436,13 @@ echo -e "${BOLD}${GREEN}   Modulo Coexy instalado com sucesso!${NC}"
 echo -e "${BOLD}${GREEN}================================================${NC}"
 echo ""
 echo -e "${YELLOW}Proximos passos:${NC}"
-echo -e "  1. Configure as variaveis de ambiente no backend:"
-echo -e "     ${CYAN}COEXY_API_KEY${NC}     - sua chave de API do Coexy"
-echo -e "     ${CYAN}COEXY_HMAC_SECRET${NC} - segredo HMAC para validacao de webhooks"
+echo -e "  1. Acesse o painel > ${CYAN}Configuracoes${NC}"
+echo -e "     Preencha os campos ${CYAN}Coexy API Key${NC} e ${CYAN}Coexy HMAC Secret${NC}"
 echo ""
-echo -e "  2. Revise manualmente o metodo ${CYAN}store${NC} em"
-echo -e "     ${CYAN}WhatsAppController.ts${NC} para inicializacao da sessao Coexy"
-echo ""
-echo -e "  3. Reinicie o PM2 apos configurar as variaveis:"
+echo -e "  2. Reinicie os servicos:"
 echo -e "     ${CYAN}pm2 restart all${NC}"
+echo ""
+echo -e "  3. Acesse ${CYAN}Conexoes${NC} > ${CYAN}Nova Conexao${NC} > ${CYAN}Coexy - API Oficial${NC}"
 echo ""
 echo -e "  Backup salvo em: ${CYAN}${BACKUP_DIR}${NC}"
 echo ""
