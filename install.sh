@@ -218,13 +218,13 @@ patch_file \
 # ---- 2.5  WhatsAppController.ts: import + coexyStatus + store block ----
 WC_FILE="${PROJECT_DIR}/backend/src/controllers/WhatsAppController.ts"
 
-# Adicionar imports
-patch_file "$WC_FILE" \
-  "StartCoexySession" \
-  "sed -i '/^import.*TelegramPersonalService/a\\
-import StartCoexySession from \"../services/CoexyServices/StartCoexySession\";\\
-import { getCoexyChannel } from \"../libs/coexy/coexy.service\";' '${WC_FILE}'" \
-  "WhatsAppController - imports coexy"
+# Adicionar imports (no topo do arquivo, antes do primeiro import existente)
+if ! grep -q "StartCoexySession" "$WC_FILE" 2>/dev/null; then
+  sed -i '1s/^/import StartCoexySession from "..\/services\/CoexyServices\/StartCoexySession";\nimport { getCoexyChannel } from "..\/libs\/coexy\/coexy.service";\n/' "$WC_FILE"
+  ok "WhatsAppController - imports coexy - aplicado com sucesso"
+else
+  ok "WhatsAppController - imports coexy - ja aplicado, pulando"
+fi
 
 # Adicionar funcao coexyStatus (no final, antes do ultimo export)
 if ! grep -q "coexyStatus" "$WC_FILE" 2>/dev/null; then
