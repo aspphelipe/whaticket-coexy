@@ -56,6 +56,57 @@ if "setCoexyModalOpen" not in c or standalone_btn:
 
 if changed:
     f=open(p,"w");f.write(c);f.close()
-    print("Done")
+    print("Connections/index.js Done")
 else:
-    print("Already patched, nothing to do")
+    print("Connections/index.js already patched")
+
+# ============================================================
+# Patch Options.js (Settings page) - Add Coexy API Key + HMAC Secret fields
+# ============================================================
+import os
+base_dir = os.path.dirname(os.path.dirname(os.path.dirname(p)))
+opts_path = os.path.join(base_dir, "components", "Settings", "Options.js")
+
+if not os.path.exists(opts_path):
+    print("Options.js not found at", opts_path, "- skipping settings patch")
+else:
+    f=open(opts_path,"r");oc=f.read();f.close()
+    opts_changed = False
+
+    if "coexyApiKey" not in oc:
+        # 1. Add state after metaRequireBusinessManagement
+        sm = 'const [loadingMetaRequireBusinessManagement, setLoadingMetaRequireBusinessManagement] = useState(false);'
+        if sm in oc:
+            oc = oc.replace(sm, sm + '\n\n  // Coexy\n  const [coexyApiKey, setCoexyApiKey] = useState("");\n  const [loadingCoexyApiKey, setLoadingCoexyApiKey] = useState(false);\n  const [coexyHmacSecret, setCoexyHmacSecret] = useState("");\n  const [loadingCoexyHmacSecret, setLoadingCoexyHmacSecret] = useState(false);')
+            print("Options.js: state inserted")
+            opts_changed = True
+
+        # 2. Add oldSettings parsing after aiSuggestionMessagesLimit block
+        pm = re.search(r'(if \(aiSuggestionMessagesLimitPar\) \{[^}]+\})', oc)
+        if pm:
+            oc = oc[:pm.end()] + '\n\n      // Coexy\n      const coexyApiKeyPar = oldSettings.find(s => s.key === "coexyApiKey");\n      if (coexyApiKeyPar) setCoexyApiKey(coexyApiKeyPar.value);\n      const coexyHmacSecretPar = oldSettings.find(s => s.key === "coexyHmacSecret");\n      if (coexyHmacSecretPar) setCoexyHmacSecret(coexyHmacSecretPar.value);' + oc[pm.end():]
+            print("Options.js: oldSettings parsing inserted")
+            opts_changed = True
+
+        # 3. Add handlers after handleAiApiKey
+        hm = re.search(r'(async function handleAiApiKey\(value\) \{[\s\S]*?setLoadingAiApiKey\(false\);\s*\})', oc)
+        if hm:
+            oc = oc[:hm.end()] + '\n\n  async function handleCoexyApiKey(value) {\n    setCoexyApiKey(value);\n    setLoadingCoexyApiKey(true);\n    await updateUserCreation({ key: "coexyApiKey", value });\n    toast.success("Coexy API Key atualizada.");\n    setLoadingCoexyApiKey(false);\n  }\n\n  async function handleCoexyHmacSecret(value) {\n    setCoexyHmacSecret(value);\n    setLoadingCoexyHmacSecret(true);\n    await updateUserCreation({ key: "coexyHmacSecret", value });\n    toast.success("Coexy HMAC Secret atualizado.");\n    setLoadingCoexyHmacSecret(false);\n  }' + oc[hm.end():]
+            print("Options.js: handlers inserted")
+            opts_changed = True
+
+        # 4. Add JSX after aiApiKey TextField block
+        jm = re.search(r'(loadingAiApiKey\s*\?[\s\S]*?</FormHelperText>\s*</FormControl>\s*</Grid>)', oc)
+        if jm:
+            coexy_jsx = '\n\n          {/* Coexy - WhatsApp API */}\n          <Grid xs={12} item>\n            <Typography variant="subtitle1" style={{ fontWeight: 600, marginTop: 24, marginBottom: 8 }}>\n              Coexy - WhatsApp API\n            </Typography>\n          </Grid>\n\n          <Grid xs={12} md={6} item>\n            <FormControl className={classes.selectContainer}>\n              <TextField\n                id="coexyApiKey"\n                name="coexyApiKey"\n                type="password"\n                margin="dense"\n                label="Coexy API Key"\n                variant="outlined"\n                value={coexyApiKey}\n                onChange={(e) => setCoexyApiKey(e.target.value)}\n                onBlur={() => handleCoexyApiKey(coexyApiKey)}\n                InputLabelProps={{ shrink: true }}\n                placeholder="crt_pk_..."\n              />\n              <FormHelperText>\n                {loadingCoexyApiKey ? "Atualizando..." : "Coexy Dashboard > Configuracoes > API Keys"}\n              </FormHelperText>\n            </FormControl>\n          </Grid>\n\n          <Grid xs={12} md={6} item>\n            <FormControl className={classes.selectContainer}>\n              <TextField\n                id="coexyHmacSecret"\n                name="coexyHmacSecret"\n                type="password"\n                margin="dense"\n                label="Coexy HMAC Secret"\n                variant="outlined"\n                value={coexyHmacSecret}\n                onChange={(e) => setCoexyHmacSecret(e.target.value)}\n                onBlur={() => handleCoexyHmacSecret(coexyHmacSecret)}\n                InputLabelProps={{ shrink: true }}\n                placeholder="Retornado ao criar webhook"\n              />\n              <FormHelperText>\n                {loadingCoexyHmacSecret ? "Atualizando..." : "Retornado uma vez ao criar o webhook"}\n              </FormHelperText>\n            </FormControl>\n          </Grid>'
+            oc = oc[:jm.end()] + coexy_jsx + oc[jm.end():]
+            print("Options.js: JSX inserted")
+            opts_changed = True
+
+        if opts_changed:
+            f=open(opts_path,"w");f.write(oc);f.close()
+            print("Options.js Done")
+        else:
+            print("Options.js: could not find insertion points - manual edit needed")
+    else:
+        print("Options.js already has Coexy settings")

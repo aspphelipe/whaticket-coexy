@@ -387,6 +387,30 @@ if [ -f "${PROJECT_DIR}/backend/package.json" ]; then
   (cd "${PROJECT_DIR}/backend" && npx sequelize db:migrate 2>&1) && \
     ok "Sequelize migrations executadas" || \
     warn "Sequelize migration falhou - execute manualmente: cd ${PROJECT_DIR}/backend && npx sequelize db:migrate"
+
+  # Seed Coexy settings
+  info "Inserindo configuracoes Coexy na tabela Settings ..."
+  BACKEND_ENV="${PROJECT_DIR}/backend/.env"
+  if [ -f "$BACKEND_ENV" ]; then
+    DB_NAME=$(grep -oP 'DB_NAME=\K.*' "$BACKEND_ENV" 2>/dev/null || echo "")
+    DB_USER=$(grep -oP 'DB_USER=\K.*' "$BACKEND_ENV" 2>/dev/null || echo "")
+    DB_PASS=$(grep -oP 'DB_PASS=\K.*' "$BACKEND_ENV" 2>/dev/null || echo "")
+    DB_HOST=$(grep -oP 'DB_HOST=\K.*' "$BACKEND_ENV" 2>/dev/null || echo "localhost")
+    DB_PORT=$(grep -oP 'DB_PORT=\K.*' "$BACKEND_ENV" 2>/dev/null || echo "5432")
+
+    if [ -n "$DB_NAME" ] && [ -n "$DB_USER" ]; then
+      PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "${DB_PORT:-5432}" -U "$DB_USER" -d "$DB_NAME" -c "
+        INSERT INTO \"Settings\" (key, value, \"companyId\", \"createdAt\", \"updatedAt\")
+        VALUES ('coexyApiKey', '', 1, NOW(), NOW()),
+               ('coexyHmacSecret', '', 1, NOW(), NOW())
+        ON CONFLICT DO NOTHING;
+      " 2>&1 && ok "Settings Coexy inseridas" || warn "Seed Settings falhou - insira manualmente"
+    else
+      warn "Variaveis de banco nao encontradas no .env"
+    fi
+  else
+    warn ".env do backend nao encontrado - insira as Settings manualmente"
+  fi
 fi
 
 # Prisma (api_oficial)
